@@ -1,9 +1,8 @@
 import sys
 import click
-from pyowm import OWM
 from pyowm.exceptions.api_call_error import APICallError
-from weather.lib import Ziptastic
 from weather import api_keys
+from Info_From_API import info_from_api as apI
 
 
 @click.command()
@@ -15,13 +14,14 @@ def main(location, units, api_key):
     """Display the current weather forecast for a location.  Accepted formats
     for the location are: US postal code."""
 
+    # why do we have to set up this key
     if api_key is not None:
         api_keys.set_key(api_key)
 
-    city, state = get_city_state(location)
+    city, state = apI.get_city_state(location)
 
     try:
-        weather = get_weather(city, state)
+        weather = apI.get_weather(city, state)
     except APICallError:
         click.echo('An error occurred while connecting to OpenWeather Map.  '
                    'Make sure your API key is valid.')
@@ -36,34 +36,6 @@ def main(location, units, api_key):
     click.echo('Current weather for {}, {}'.format(city, state))
     click.echo('Temperature: {}'.format(temperature))
     click.echo('Status: {}'.format(status))
-
-
-def get_city_state(postal_code):
-    """Return the city and state from a US postal code."""
-
-    api = Ziptastic('')
-    location = api.get_from_postal_code(postal_code)
-    city, state = location['city'], location['state']
-
-    return city, state
-
-
-def get_weather(city, state):
-    """Return the weather at the city, state."""
-
-    # OWM expects the place to be in the format of CITY,COUNTRY (Minneapolis,
-    #  US).  The only problem with that is some cities like Bloomington are
-    # ambiguous.  Querying the API with CITY,STATE (Minneapolis,Minnesota)
-    # seems to work.  I don't think there are any two-character state codes
-    # that clash with any countries.  We should probably expect bug reports,
-    # though.
-    api = OWM(api_keys.OWM)
-    place = '{},{}'.format(city, state)
-    observation = api.weather_at_place(place)
-    weather = observation.get_weather()
-
-    return weather
-
 
 if __name__ == '__main__':
     main()
